@@ -78,10 +78,20 @@ def make_ui():
         json = civitai.civitai_get(url)
 
         if not json:
+            if util.GRADIO_FALLBACK:
+                return [
+                    {},
+                    "Civitai did not provide a useable response.",
+                    ch_prev_btn.update(interactive=False),
+                    ch_next_btn.update(interactive=False),
+                    ch_base_model_drop.update(choices=SUPPORTED_MODELS)
+                ]
             return [
                 {},
                 "Civitai did not provide a useable response.",
-                ch_base_model_drop.update(choices=SUPPORTED_MODELS)
+                gr.update(interactive=False),
+                gr.update(interactive=False),
+                gr.update(choices=SUPPORTED_MODELS)
             ]
 
         content = parse_civitai_response(json)
@@ -104,7 +114,7 @@ def make_ui():
             return [
                 state,
                 container.safe_substitute({"cards": "".join(cards)}),
-                ch_prev_btn.update(interactive=state["current_page"] > 0),  # Enable/disable buttons
+                ch_prev_btn.update(interactive=state["current_page"] > 0),
                 ch_next_btn.update(interactive=next_page is not None),
                 ch_base_model_drop.update(choices=merged_base_models)
             ]
@@ -112,9 +122,9 @@ def make_ui():
         return [
             state,
             container.safe_substitute({"cards": "".join(cards)}),
-            gr.Button(interactive=state["current_page"] > 0),  # Enable/disable buttons
-            gr.Button(interactive=next_page is not None),
-            gr.Dropdown(choices=merged_base_models)
+            gr.update(interactive=state["current_page"] > 0),
+            gr.update(interactive=next_page is not None),
+            gr.update(choices=merged_base_models)
         ]
 
     with gr.Row():
