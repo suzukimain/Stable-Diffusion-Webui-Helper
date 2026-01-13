@@ -18,6 +18,8 @@ This extension provides the ability to download models and model metadata from C
 
 - [ ] Support Hugging Face
 
+- [ ] Display video preview
+
 
 ## About This Version of Webui Helper
 This is my personal version of Stable-Diffusion-Webui-Civitai-Helper. I started it entirely because the version I was using broke when SD-webui v1.5 came out and I needed it to work. Since then, I have added functionality that I wanted and have made best-effort attempts to maintain compatibility with older versions of sd-webui, but I do not use older versions and therefore do not test on older versions.

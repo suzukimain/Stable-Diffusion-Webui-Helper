@@ -293,6 +293,16 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
+        "ch_download_video_preview",
+        shared.OptionInfo(
+            False,
+            "Download Video Previews from Civitai",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section
+        )
+    )
+    shared.opts.add_option(
         "ch_nsfw_threshold",
         shared.OptionInfo(
             list(civitai.NSFW_LEVELS.keys())[0], # Block NSFW

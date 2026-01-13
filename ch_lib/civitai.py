@@ -409,14 +409,16 @@ def get_image_url(img_dict, max_size_preview):
     return url
 
 
-def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
+def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold, download_video_preview=False):
     """
     Downloads a preview image if it meets the user's requirements.
+    Note: Civitai CDN automatically returns optimized preview images for video content.
     """
 
     img_url = img_dict.get("url", None)
     if img_url is None:
         yield (False, None)
+        return
 
     image_rating = img_dict.get("nsfwLevel", 32)
     if image_rating > 1:
@@ -424,11 +426,22 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
         if NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
             util.printD("Skip NSFW image")
             yield (False, None)
+            return
 
     preview_type = img_dict.get("type")
-    if preview_type != "image":
-        util.printD(f"Preview is not an image. Found {preview_type} instead. Skipping.")
+    
+    # Handle video previews - Civitai CDN returns optimized preview images for videos
+    if preview_type == "video":
+        if not download_video_preview:
+            util.printD(f"Preview is a video. Skipping (video preview download disabled).")
+            yield (False, None)
+            return
+        util.printD(f"Preview is a video. Downloading optimized preview from Civitai CDN.")
+    
+    if preview_type not in ["image", "video"]:
+        util.printD(f"Preview type not supported. Found {preview_type} instead. Skipping.")
         yield (False, None)
+        return
 
     img_url = get_image_url(img_dict, max_size_preview)
 
@@ -443,17 +456,19 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
     if not success:
         yield (False, None)
+        return
 
     # we only need 1 preview image
     yield (True, preview_path)
 
 
+
 # get preview image by model path
 # image will be saved to file, so no return
-def get_preview_image_by_model_path(model_path: str, max_size_preview, nsfw_preview_threshold, preferred_preview=None):
+def get_preview_image_by_model_path(model_path: str, max_size_preview, nsfw_preview_threshold, preferred_preview=None, download_video_preview=False):
     """
     Downloads a preview image for a model if one doesn't already exist.
-    Skips images that are more NSFW than the user's NSFW threshold
+    Skips images that are more NSFW than the user's NSFW threshold.
     """
     util.printD("Downloading model image.")
 
@@ -512,7 +527,7 @@ def get_preview_image_by_model_path(model_path: str, max_size_preview, nsfw_prev
 
     for img_dict in images:
         for result in verify_preview(
-                preview_path, img_dict, max_size_preview, nsfw_preview_threshold
+                preview_path, img_dict, max_size_preview, nsfw_preview_threshold, download_video_preview=download_video_preview
         ):
             if not isinstance(result, str):
                 success, _ = result

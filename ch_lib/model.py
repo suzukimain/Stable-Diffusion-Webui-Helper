@@ -286,16 +286,22 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
     updated = False
     if util.get_opts("ch_download_examples"):
         images = model_info.get("images", [])
+        download_video_preview = util.get_opts("ch_download_video_preview")
 
         for img in images:
             url = img.get("url", None)
-
+            img_type = img.get("type", "image")
 
             nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
             rating = img.get("nsfwLevel", 32)
             if rating > 1:
                 if civitai.NSFW_LEVELS[nsfw_preview_threshold] < rating:
                     continue
+
+            # Skip video previews if download disabled
+            if img_type == "video" and not download_video_preview:
+                util.printD(f"Skipping video preview (download disabled)")
+                continue
 
             if url:
                 existing_dl = local_image(existing_info, img)

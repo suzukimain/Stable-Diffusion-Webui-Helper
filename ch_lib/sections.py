@@ -155,6 +155,8 @@ def get_model_info_by_url_section():
 def filter_previews(previews):
     images = []
     nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
+    download_video_preview = util.get_opts("ch_download_video_preview")
+    
     for preview in previews:
         try:
             nsfw_level = preview["nsfwLevel"]
@@ -166,8 +168,14 @@ def filter_previews(previews):
 
         if civitai.NSFW_LEVELS[nsfw_preview_threshold] < nsfw_level:
             continue
-        if preview["type"] == "image":
-            # Civitai added videos as previews, and webui does not like it
+        
+        preview_type = preview["type"]
+        
+        # Include image previews
+        if preview_type == "image":
+            images.append(preview["url"])
+        # Include video previews if download is enabled
+        elif preview_type == "video" and download_video_preview:
             images.append(preview["url"])
 
     return images
