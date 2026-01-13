@@ -130,6 +130,25 @@ blockquote ol {
     overflow: scroll;
     max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
 }
+
+/* Improve tab focus text visibility */
+#tab_civitai_helper .tab-nav button {
+    color: var(--body-text-color);
+    font-weight: 500;
+}
+
+#tab_civitai_helper .tab-nav button:focus,
+#tab_civitai_helper .tab-nav button:focus-visible {
+    color: var(--body-text-color) !important;
+    outline: 2px solid var(--primary-600);
+    outline-offset: -2px;
+}
+
+#tab_civitai_helper .tab-nav button.selected {
+    color: var(--body-text-color) !important;
+    font-weight: 600;
+}
+
 #ch_search .cards_container {
     grid-template-columns: 340px;
 }

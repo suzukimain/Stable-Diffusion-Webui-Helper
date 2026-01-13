@@ -80,13 +80,15 @@ def make_ui():
         if not json:
             return [
                 {},
-                "Civitai did not provide a useable response."
+                "Civitai did not provide a useable response.",
+                ch_base_model_drop.update(choices=SUPPORTED_MODELS)
             ]
 
         content = parse_civitai_response(json)
 
         meta = content.get("meta", {})
         next_page = meta.get("next_page", None)
+        api_base_models = meta.get("base_models", [])
 
         if next_page not in state:
             state["pages"].append(next_page)
@@ -95,19 +97,24 @@ def make_ui():
 
         container = quick_template_from_file("container.html")
 
+        # Merge API base models with existing supported models, then sort
+        merged_base_models = sorted(list(set(SUPPORTED_MODELS + api_base_models)))
+
         if util.GRADIO_FALLBACK:
             return [
                 state,
                 container.safe_substitute({"cards": "".join(cards)}),
                 ch_prev_btn.update(interactive=state["current_page"] > 0),  # Enable/disable buttons
-                ch_next_btn.update(interactive=next_page is not None)
+                ch_next_btn.update(interactive=next_page is not None),
+                ch_base_model_drop.update(choices=merged_base_models)
             ]
 
         return [
             state,
             container.safe_substitute({"cards": "".join(cards)}),
             gr.Button(interactive=state["current_page"] > 0),  # Enable/disable buttons
-            gr.Button(interactive=next_page is not None)
+            gr.Button(interactive=next_page is not None),
+            gr.Dropdown(choices=merged_base_models)
         ]
 
     with gr.Row():
@@ -220,7 +227,8 @@ def make_ui():
         ch_search_state,
         ch_search_results_html,
         ch_prev_btn,
-        ch_next_btn
+        ch_next_btn,
+        ch_base_model_drop
     ]
 
     ch_search_btn.click(
@@ -300,9 +308,15 @@ def parse_model(model):
         versions[version["id"]] = base_model
 
     nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
+    download_video_preview = util.get_opts("ch_download_video_preview")
 
     for file in previews:
-        if file["type"] != "image":
+        # Accept both image and video types
+        if file["type"] not in ["image", "video"]:
+            continue
+
+        # Skip video if download disabled
+        if file["type"] == "video" and not download_video_preview:
             continue
 
         if civitai.NSFW_LEVELS[nsfw_preview_threshold] < file["nsfwLevel"]:
@@ -339,21 +353,32 @@ def parse_civitai_response(content):
     results = {
         "models": [],
         "meta": {
-            "next_page": None
+            "next_page": None,
+            "base_models": []
         }
     }
 
     if content.get("metadata", False):
         results["meta"]["next_page"] = content["metadata"].get("nextPage", None)
 
+    # Collect all unique base models from API response
+    all_base_models = set()
+
     for model in content["items"]:
         try:
-            results["models"].append(parse_model(model))
+            parsed = parse_model(model)
+            results["models"].append(parsed)
+            # Collect base models from this model
+            for bm in parsed.get("base_models", []):
+                all_base_models.add(bm)
 
         except Exception as e:
             # TODO: better error handling
             util.printD(e)
             util.printD(model)
+
+    # Sort base models alphabetically and store in meta
+    results["meta"]["base_models"] = sorted(list(all_base_models))
 
     return results
 
