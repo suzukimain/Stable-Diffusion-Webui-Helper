@@ -792,17 +792,26 @@ def move_model_to_subfolder(filepath, model_info):
     model_id = model_info["modelId"]
 
     if model_id == "":
-        return None
+        util.printD("Model has no parent model ID. Skipping organization.")
+        return filepath
 
     content = civitai_get(f'{URLS["modelId"]}{model_id}')
 
+    if content is None:
+        util.printD("Parent model no longer exists.")
+        return filepath
+    
     tags = content["tags"]
-
+    util.printD(f"DEBUG Tags: {tags}")
     # iterate through tags until we find one that matches MODEL_CATEGORIES
 
     for tag in tags:
+        util.printD(f"Checking tag: {tag}")
+
+        normalized_tag = tag.lower().strip()
+        
         if tag in MODEL_CATEGORIES:
-            model_category = tag
+            model_category = normalized_tag
 
             # create subfolder if it doesn't exist
             # check to make sure the model is not already in the correct subfolder

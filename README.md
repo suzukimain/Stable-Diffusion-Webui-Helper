@@ -1,6 +1,12 @@
-
-<img src="https://visitor-badge.laobi.icu/badge?page_id=suzukimain.Stable-Diffusion-Webui-Civitai-Helper" alt="Visitor Badge">
-
+### WIP fix for the error where it cannot find the model on the website.
+As of 07/24/2026 the extension now reports:
+- Models not found on Civitai
+- Continues scanning, no error that stops the scan completely
+- Fix for error that stops scan when making sub-folders
+- Prints an alphabetical list of models
+	- Prints the list separated by checkpoint, lora, etc.
+    - Prints "models scanned" and "models found"
+- Prints the list of models not found to a txt file in the extension folder named "missing_models.txt"
 
 ## About Webui Helper
 This extension provides the ability to download models and model metadata from Civitai. Data such as activation keywords, model description, version information, and model previews for models hosted on Civitai can be at your fingertips without having to navigate away from stable diffusion webui.

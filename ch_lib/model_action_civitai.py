@@ -98,7 +98,7 @@ def scan_single_model(filepath, model_type, refetch_old, organize_models, delay)
 
         if not model_info:
             model_info = dummy_model_info(filepath, civitai_hash, model_type)
-            yield True
+            yield ("missing", filepath)
 
         # if model is lora and not already in a subfolder, move into subfolder based on its type (character,
         # clothing, etc.)
@@ -139,7 +139,6 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
 
     model_types = scan_model_types
     if isinstance(scan_model_types, str):
-        # check if type is a string
         model_types = [scan_model_types]
 
     models = []
@@ -159,12 +158,14 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
 
                 models.append((filepath, model_type))
 
-    count = [0, 0]
+    models_scanned = 0
+    models_found = 0
+    missing_models = []
     total = len(models)
     for filepath, model_type in models:
         success = None
 
-        tracker = (count[0], total)
+        tracker = (models_scanned, total)
 
         progress(
             tracker,
@@ -172,7 +173,7 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
             unit="models"
         )
 
-        count[0] = count[0] + 1
+        models_scanned += 1
 
         for result in scan_single_model(filepath, model_type, refetch_old, organize_models, delay):
             if isinstance(result, str):
@@ -180,6 +181,11 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
                 continue
 
             if isinstance(result, tuple):
+            
+                if result[0] == "missing":
+                    missing_models.append((model_type, result[1]))
+                    continue
+            
                 percent, status = result
                 progress(percent, desc=status)
                 continue
@@ -188,10 +194,11 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
             break
 
         if not success:
+            missing_models.append((model_type, filepath))
             continue
 
         # set model_count
-        count[1] = count[1] + 1
+        models_found += 1
 
         # check preview image
         for _ in civitai.get_preview_image_by_model_path(
@@ -202,9 +209,31 @@ def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr
             pass
 
     # this previously had an image count, but it always matched the model count.
-    output = f"Done. Successfully scanned {count[1]} of {len(models)} models."
+    output = f"Done. Successfully scanned {models_found} of {len(models)} models."
 
     util.printD(output)
+
+    if missing_models:
+        util.printD("")
+        util.printD("=" * 60)
+        util.printD(f"Models not found on Civitai ({len(missing_models)}):")
+
+        missing_models.sort()
+        
+        for model_path in missing_models:
+            util.printD(f"[{model_type}] {os.path.basename(model_path)}")
+
+        util.printD("=" * 60)
+
+        report_path = os.path.join(
+            os.path.dirname(__file__),
+            "missing_models.txt"
+        )
+        with open(report_path, "w", encoding="utf-8") as report:
+            for model_path in missing_models:
+                report.write(f"[{model_type}] {os.path.basename(model_path)}\n")
+    
+        util.printD(f"Saved missing model list to: {report_path}")
 
     yield output
 
